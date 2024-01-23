@@ -21,7 +21,7 @@ export async function createReservationAction(formData: FormData) {
   console.log("endTime", endTime);
 
   //insert into the database
-  await db.insert(reservations).values({ courtId, userId, startTime, endTime });
+  // await db.insert(reservations).values({ courtId, userId, startTime, endTime });
   revalidatePath("/home"); // Revalidate page to see new content
 }
 

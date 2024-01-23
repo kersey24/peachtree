@@ -1,5 +1,6 @@
 "use client";
 import { set } from "date-fns";
+import { on } from "events";
 import Link from "next/link";
 import { useState } from "react";
 import { DateRange } from "react-day-picker";
@@ -21,14 +22,23 @@ import {
 } from "~/components/ui/table";
 
 export default function DashboardPage() {
-  const slots: ReservationSlot[] = [
-    // mock data
-    { date: "January 1, 2021", timeSlot: "10:00 - 11:00", status: "Available" },
-    { date: "January 1, 2021", timeSlot: "11:00 - 12:00", status: "Reserved" },
-    { date: "January 1, 2021", timeSlot: "12:00 - 13:00", status: "Available" },
-    { date: "January 1, 2021", timeSlot: "13:00 - 14:00", status: "Reserved" },
-    { date: "January 1, 2021", timeSlot: "14:00 - 15:00", status: "Available" },
-  ]; // TODO: This should be fetched from the server instead
+  const [availableSlots, setAvailableSlots] = useState<ReservationSlot[]>([]);
+
+  // Function to update available slots
+  const updateAvailableSlots = async (date: Date) => {
+    const slots = await getOpenings(date);
+
+    // Transform each TimeSlot to ReservationSlot
+    const transformedSlots: ReservationSlot[] = slots.map((slot) => {
+      return {
+        date: slot.start.toLocaleDateString(), // Adjust format as needed
+        timeSlot: `${slot.start.toLocaleTimeString()} - ${slot.end.toLocaleTimeString()}`, // Adjust format as needed
+        status: "Available", // Assuming all fetched slots are available
+      };
+    });
+
+    setAvailableSlots(transformedSlots);
+  };
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100 dark:bg-gray-900">
@@ -36,8 +46,8 @@ export default function DashboardPage() {
         <h1 className="text-center text-2xl font-bold dark:text-white">
           Peach Tree Racquet Club Court Reservation
         </h1>
-        <CalendarButton />
-        <ReservationTable slots={slots} />
+        <CalendarButton onDateSelect={updateAvailableSlots} />
+        <ReservationTable slots={availableSlots} />
       </div>
     </div>
   );
@@ -71,7 +81,11 @@ function CalendarDaysIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-const CalendarButton = () => {
+const CalendarButton = ({
+  onDateSelect,
+}: {
+  onDateSelect: (date: Date) => Promise<void>;
+}) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false); // State to control popover visibility
 
@@ -88,8 +102,7 @@ const CalendarButton = () => {
 
       // Call the server action
       if (selectedStartDate) {
-        const response = await getOpenings(selectedStartDate);
-        // Handle the response as needed
+        const response = await onDateSelect(selectedStartDate);
       }
     } else {
       setSelectedDate(null);

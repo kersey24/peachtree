@@ -1,42 +1,80 @@
 "use server";
-import { sql } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 import React from "react";
 import { db } from "~/server/db";
 import { courts, reservations } from "~/server/db/schema";
+
+type TimeSlot = {
+  start: Date;
+  end: Date;
+};
 
 export async function getOpenings(date: Date) {
   try {
     const dayStart = new Date(date.setHours(0, 0, 0, 0));
     const dayEnd = new Date(date.setHours(23, 59, 59, 999));
+    const totalCourts = 4; // Total number of courts
+    console.log("dayStart", dayStart);
+    console.log("dayEnd", dayEnd);
 
-    // Query to find all time slots where courts are reserved on the given day
-    const reservedSlotsQuery = sql`
-      SELECT DISTINCT ${reservations.startTime} 
-      FROM ${reservations}
-      WHERE (${reservations.startTime} BETWEEN ${dayStart} AND ${dayEnd}
-      OR ${reservations.endTime} BETWEEN ${dayStart} AND ${dayEnd})
-      AND ${reservations.courtId} IN (SELECT ${courts.id} FROM ${courts} WHERE ${courts.availabilty} = TRUE)
-    `;
+    // Define your time slots here, for example, every hour from opening to closing time
+    const timeSlots = createTimeSlots(dayStart, dayEnd);
 
-    const reservedSlots = await db.execute(reservedSlotsQuery);
+    const availableSlots: TimeSlot[] = [];
 
-    // Logic to calculate available time slots based on reserved slots
-    // This is pseudo-code and needs to be implemented based on your time slot logic
-    // const availableSlots = calculateAvailableSlots(
-    //   dayStart,
-    //   dayEnd,
-    //   reservedSlots,
-    // );
+    for (const slot of timeSlots) {
+      const slotStart = slot.start;
+      const slotEnd = slot.end;
 
-    // return availableSlots;
+      // Count reservations for each time slot
+      const countQuery = sql`
+        SELECT COUNT(*) as count
+        FROM ${reservations}
+        WHERE ${reservations.startTime} = ${slotStart}
+      `;
+
+      const result = await db
+        .select({
+          value: count(reservations.id),
+        })
+        .from(reservations)
+        .where(eq(reservations.startTime, slotStart))
+        .execute();
+
+      let reservationsCount = 0;
+
+      if (result.length > 0 && result[0]) {
+        reservationsCount = result[0].value;
+        // Use reservationsCount as needed
+      }
+
+      // Check if the slot is available
+      if (reservationsCount < totalCourts) {
+        availableSlots.push(slot);
+      }
+    }
+
+    return availableSlots;
   } catch (error) {
     console.error("Error fetching openings:", error);
     throw new Error("Failed to fetch openings");
   }
 }
 
-// Implement this function based on your time slot duration
-// function calculateAvailableSlots(dayStart, dayEnd, reservedSlots) {
-// Calculate and return available time slots
-// ...
-// }
+function createTimeSlots(start: Date, end: Date) {
+  // Assuming hourly slots for simplicity. Adjust based on your requirement.
+  const slots = [];
+  const current = new Date(start.getTime());
+
+  while (current < end) {
+    const slotEnd = new Date(current.getTime());
+    slotEnd.setHours(current.getHours() + 1);
+
+    slots.push({ start: new Date(current.getTime()), end: slotEnd });
+
+    // Move to the next hour
+    current.setHours(current.getHours() + 1);
+  }
+
+  return slots;
+}
