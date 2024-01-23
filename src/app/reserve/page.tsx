@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Button } from "~/components/ui/button"
 import { Calendar } from "~/components/ui/calendar"
+import { Card, CardContent } from "~/components/ui/card"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { Textarea } from "~/components/ui/textarea"
@@ -15,6 +16,8 @@ export default function ReservationPage() {
                 </Button>
             </header>
             <main className="flex-1 p-4 justify-center items-center">
+                <h1 className="text-2xl font-bold">Reserve a Court</h1>
+                <SelectACourt />
                 <div className="flex flex-col md:flex-row gap-4 md:gap-8">
                     <MainCalendar />
                     <AvailableTimeSlots />
@@ -32,7 +35,7 @@ export default function ReservationPage() {
 function MainCalendar() {
     return <div className="w-full max-w-5xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b">
-            <h1 className="text-lg font-semibold p-4">Schedule a Reservation</h1>
+            <h1 className="text-lg font-semibold p-4">Court Availability</h1>
             <CalendarDaysIcon className="h-6 w-6" />
         </div>
         <div className="flex items-center justify-between px-6 py-4 border-b">
@@ -106,23 +109,99 @@ function MainCalendar() {
     </div>
 }
 
+function SelectACourt() {
+    return (
+        <section className="flex flex-col gap-4 py-4">
+            <h3 className="text-2xl font-bold">Select a Court</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <Card>
+                    <CardContent className="flex flex-col items-center gap-2">
+                        <img
+                            alt="Court 1"
+                            className="w-full h-32 object-cover rounded-md"
+                            height="100"
+                            src="/placeholder.svg"
+                            style={{
+                                aspectRatio: "100/100",
+                                objectFit: "cover",
+                            }}
+                            width="100"
+                        />
+                        <h3 className="text-lg font-semibold">Court 1</h3>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="flex flex-col items-center gap-2">
+                        <img
+                            alt="Court 2"
+                            className="w-full h-32 object-cover rounded-md"
+                            height="100"
+                            src="/placeholder.svg"
+                            style={{
+                                aspectRatio: "100/100",
+                                objectFit: "cover",
+                            }}
+                            width="100"
+                        />
+                        <h3 className="text-lg font-semibold">Court 2</h3>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="flex flex-col items-center gap-2">
+                        <img
+                            alt="Court 3"
+                            className="w-full h-32 object-cover rounded-md"
+                            height="100"
+                            src="/placeholder.svg"
+                            style={{
+                                aspectRatio: "100/100",
+                                objectFit: "cover",
+                            }}
+                            width="100"
+                        />
+                        <h3 className="text-lg font-semibold">Court 3</h3>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="flex flex-col items-center gap-2">
+                        <img
+                            alt="Court 4"
+                            className="w-full h-32 object-cover rounded-md"
+                            height="100"
+                            src="/placeholder.svg"
+                            style={{
+                                aspectRatio: "100/100",
+                                objectFit: "cover",
+                            }}
+                            width="100"
+                        />
+                        <h3 className="text-lg font-semibold">Court 4</h3>
+                    </CardContent>
+                </Card>
+            </div>
+        </section>
+    )
+}
+
+
 function CourtInfo() {
-    return <div className="flex flex-row py-4 gap-2 space-y-2 md:flex-col md:gap-3">
-        <h2 className="text-lg font-semibold">Court Information</h2>
-        <div className="space-y-2">
-            <Label htmlFor="number_players">Number of players</Label>
-            <Input id="number_players" placeholder="Number of players" required type="number" />
-        </div>
-        <div className="space-y-2">
-            <Label htmlFor="court_number">Court Number</Label>
-            <Input id="court_number" placeholder="Court number" required type="number" />
-        </div>
-        <div className="space-y-2">
-            <Label htmlFor="other_players">Other Players</Label>
-            {/* TODO: Growable list of other players */}
-            <Textarea id="other_players" placeholder="Other players..." />
-        </div>
-    </div>
+    return (
+        <>
+            <div className="flex flex-row py-4 gap-2 space-y-2 md:flex-col md:gap-3">
+                <h2 className="text-lg font-semibold">Court Information</h2>
+                <div className="space-y-2">
+                    <Label htmlFor="number_players">Number of players</Label>
+                    <Input id="number_players" placeholder="Number of players" required type="number" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="other_players">Other Players</Label>
+                    {/* TODO: Growable list of other players */}
+                    <Textarea id="other_players" placeholder="Other players..." />
+                    {/* <PlayerList /> */}
+                </div>
+            </div>
+        </>
+    )
 }
 
 function AvailableTimeSlots() {
