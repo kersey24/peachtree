@@ -8,7 +8,7 @@ import { Textarea } from "~/components/ui/textarea"
 
 export default function ReservationPage() {
     return (
-        <div className="flex flex-col h-screen">
+        <div className="flex flex-col">
             <header className="flex items-center justify-between p-4 bg-gray-800 text-white">
                 <h1 className="text-lg font-semibold">Peach Tree Racquet Club</h1>
                 <Button className="text-white">
