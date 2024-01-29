@@ -1,4 +1,10 @@
-import { InferModel, InferModelFromColumns, InferSelectModel, relations, sql } from "drizzle-orm";
+import {
+  InferModel,
+  InferModelFromColumns,
+  InferSelectModel,
+  relations,
+  sql,
+} from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -23,7 +29,7 @@ export const mysqlTable = mysqlTableCreator(
 );
 
 export const users = mysqlTable("user", {
-  id: bigint("id", {mode: "number"}).primaryKey().autoincrement(),
+  id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
   name: varchar("name", { length: 255 }),
   email: varchar("email", { length: 255 }).notNull(),
   emailVerified: timestamp("emailVerified", {
@@ -33,7 +39,7 @@ export const users = mysqlTable("user", {
   image: varchar("image", { length: 255 }),
 });
 
-export type User = InferSelectModel<typeof users>
+export type User = InferSelectModel<typeof users>;
 
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
@@ -58,7 +64,9 @@ export const accounts = mysqlTable(
     session_state: varchar("session_state", { length: 255 }),
   },
   (account) => ({
-    compoundKey: primaryKey({ columns: [account.provider, account.providerAccountId]}),
+    compoundKey: primaryKey({
+      columns: [account.provider, account.providerAccountId],
+    }),
     userIdIdx: index("userId_idx").on(account.userId),
   }),
 );
@@ -93,7 +101,7 @@ export const verificationTokens = mysqlTable(
     expires: timestamp("expires", { mode: "date" }).notNull(),
   },
   (vt) => ({
-    compoundKey: primaryKey({columns: [vt.identifier, vt.token]}),
+    compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
   }),
 );
 
@@ -110,13 +118,15 @@ export const reservations = mysqlTable(
   "reservation",
   {
     id: varchar("id", { length: 255 }).notNull().primaryKey(),
-    courtId: varchar("courtId", { length: 255 }).notNull(),
+    courtId: int("courtId").notNull(),
     userId: varchar("userId", { length: 255 }).notNull(),
     startTime: timestamp("startTime", { mode: "date" }).notNull(),
     endTime: timestamp("endTime", { mode: "date" }).notNull(),
   },
   (reservation) => ({
-    compoundKey: primaryKey({columns: [reservation.courtId, reservation.startTime]}),
+    compoundKey: primaryKey({
+      columns: [reservation.courtId, reservation.startTime],
+    }),
   }),
 );
 

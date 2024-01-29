@@ -32,7 +32,9 @@ export default function DashboardPage() {
     const transformedSlots: ReservationSlot[] = slots.map((slot) => {
       return {
         date: slot.start.toLocaleDateString(), // Adjust format as needed
-        timeSlot: `${slot.start.toLocaleTimeString()} - ${slot.end.toLocaleTimeString()}`, // Adjust format as needed
+        timeSlot: `${slot.start.toLocaleTimeString([], {
+          timeStyle: "short",
+        })} - ${slot.end.toLocaleTimeString([], { timeStyle: "short" })}`, // Adjust format as needed
         status: "Available", // Assuming all fetched slots are available
       };
     });

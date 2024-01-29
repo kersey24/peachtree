@@ -26,13 +26,6 @@ export async function getOpenings(date: Date) {
       const slotStart = slot.start;
       const slotEnd = slot.end;
 
-      // Count reservations for each time slot
-      const countQuery = sql`
-        SELECT COUNT(*) as count
-        FROM ${reservations}
-        WHERE ${reservations.startTime} = ${slotStart}
-      `;
-
       const result = await db
         .select({
           value: count(reservations.id),
