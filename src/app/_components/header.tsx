@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function Header() {
     return (
         <header className="px-4 lg:px-6 h-14 flex items-center">
-            <Link className="flex items-center justify-center" href="#">
+            <Link className="flex items-center justify-center" href="/">
                 <PeachTreeIcon className="h-6 w-6" />
                 <span className="sr-only">Peach Tree Racquet Club</span>
             </Link>
