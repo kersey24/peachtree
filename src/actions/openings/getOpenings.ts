@@ -7,17 +7,14 @@ import { courts, reservations } from "~/server/db/schema";
 type TimeSlot = {
   start: Date;
   end: Date;
+  available: boolean;
 };
 
 export async function getOpenings(date: Date) {
   try {
     const dayStart = new Date(date.setHours(0, 0, 0, 0));
     const dayEnd = new Date(date.setHours(23, 59, 59, 999));
-    const totalCourts = 4; // Total number of courts
-    console.log("dayStart", dayStart);
-    console.log("dayEnd", dayEnd);
-
-    // Define your time slots here, for example, every hour from opening to closing time
+    const totalCourts = 4;
     const timeSlots = createTimeSlots(dayStart, dayEnd);
 
     const availableSlots: TimeSlot[] = [];
@@ -35,17 +32,19 @@ export async function getOpenings(date: Date) {
         .execute();
 
       let reservationsCount = 0;
-
       if (result.length > 0 && result[0]) {
         reservationsCount = result[0].value;
-        // Use reservationsCount as needed
       }
 
-      // Check if the slot is available
-      if (reservationsCount < totalCourts) {
-        availableSlots.push(slot);
-      }
+      // Include all slots, but mark as unavailable if necessary
+      availableSlots.push({
+        start: slot.start,
+        end: slot.end,
+        available: reservationsCount < totalCourts,
+      });
     }
+
+    console.log("Available slots:", availableSlots);
 
     return availableSlots;
   } catch (error) {

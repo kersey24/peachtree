@@ -124,9 +124,10 @@ export const reservations = mysqlTable(
     endTime: timestamp("endTime", { mode: "date" }).notNull(),
   },
   (reservation) => ({
-    compoundKey: primaryKey({
-      columns: [reservation.courtId, reservation.startTime],
-    }),
+    compoundKey: index("reservation_idx").on(
+      reservation.courtId,
+      reservation.startTime,
+    ),
   }),
 );
 

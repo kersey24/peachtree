@@ -28,14 +28,20 @@ export default function DashboardPage() {
   const updateAvailableSlots = async (date: Date) => {
     const slots = await getOpenings(date);
 
+    console.log(slots);
+
     // Transform each TimeSlot to ReservationSlot
     const transformedSlots: ReservationSlot[] = slots.map((slot) => {
+      // Convert UTC to local time if necessary
+      const localStart = new Date(slot.start);
+      const localEnd = new Date(slot.end);
+
       return {
-        date: slot.start.toLocaleDateString(), // Adjust format as needed
-        timeSlot: `${slot.start.toLocaleTimeString([], {
+        date: localStart.toLocaleDateString(),
+        timeSlot: `${localStart.toLocaleTimeString([], {
           timeStyle: "short",
-        })} - ${slot.end.toLocaleTimeString([], { timeStyle: "short" })}`, // Adjust format as needed
-        status: "Available", // Assuming all fetched slots are available
+        })} - ${localEnd.toLocaleTimeString([], { timeStyle: "short" })}`,
+        status: slot.available ? "Available" : "Reserved",
       };
     });
 

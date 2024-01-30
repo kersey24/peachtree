@@ -3,8 +3,10 @@ import { and, eq, sql } from "drizzle-orm";
 import { db } from "~/server/db"; // Ensure you have the correct path
 import { reservations } from "~/server/db/schema";
 
+// Function to get the reservations for a court on a given date
 export async function getCourtReserves(courtId: number, date: Date) {
   // Extract year, month, and day from the provided date
+
   const year = date.getFullYear();
   const month = date.getMonth() + 1; // JavaScript months are 0-indexed
   const day = date.getDate();

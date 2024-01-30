@@ -6,9 +6,9 @@ import { type Config } from "drizzle-kit";
 export default {
   schema: "./src/server/db/schema.ts",
   out: "./src/server/db/migrations",
-  driver: "pg",
+  driver: "mysql2",
   dbCredentials: {
-    connectionString: process.env.DATABASE_URL!,
+    uri: process.env.DATABASE_URL!,
   },
   strict: true,
   tablesFilter: ["peachtreescheduler_*"],
