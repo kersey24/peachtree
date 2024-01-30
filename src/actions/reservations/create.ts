@@ -1,31 +1,30 @@
 "use server";
-import { revalidatePath } from "next/cache";
+// server/actions/createReservation.ts
+
+import { db } from "~/server/db";
 import { reservations } from "~/server/db/schema";
-import { db } from "~/server/db/index";
 
-// actions/create-reservation.ts
-export async function createReservationAction(formData: FormData) {
-  "use server";
+// Assuming courtId and userId are numbers and startTime, endTime are Dates
+export async function createReservation(
+  courtId: number,
+  userId: string,
+  startTime: Date,
+  endTime: Date,
+) {
+  try {
+    const result = await db
+      .insert(reservations)
+      .values({
+        courtId, // Ensure these column names match your schema
+        userId, // e.g., 'courtId' should be the name of the column in your database
+        startTime,
+        endTime,
+      })
+      .execute();
 
-  // const id: varchar("id", { length: 255 }).notNull().primaryKey(),
-  // courtId: varchar("courtId", { length: 255 }).notNull(),
-  // userId: varchar("userId", { length: 255 }).notNull(),
-  // startTime: timestamp("startTime", { mode: "date" }).notNull(),
-  // endTime: timestamp("endTime", { mode: "date" }).notNull(),
-  // create dummy datat for the reservation
-  const courtId = "1";
-  const userId = "1";
-  const startTime = new Date(formData.get("startTime") as string);
-  const endTime = new Date(formData.get("endTime") as string);
-  console.log("startTime", startTime);
-  console.log("endTime", endTime);
-
-  //insert into the database
-  // await db.insert(reservations).values({ courtId, userId, startTime, endTime });
-  revalidatePath("/home"); // Revalidate page to see new content
+    return result;
+  } catch (error) {
+    console.error("Error creating reservation:", error);
+    throw new Error("Failed to create reservation");
+  }
 }
-
-// how do apis work?
-// request -> response
-
-// const apiroute nextrequest -> nextresponse

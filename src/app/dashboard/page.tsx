@@ -22,6 +22,7 @@ import {
 } from "~/components/ui/table";
 
 export default function DashboardPage() {
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [availableSlots, setAvailableSlots] = useState<ReservationSlot[]>([]);
 
   // Function to update available slots
@@ -54,8 +55,11 @@ export default function DashboardPage() {
         <h1 className="text-center text-2xl font-bold dark:text-white">
           Peach Tree Racquet Club Court Reservation
         </h1>
-        <CalendarButton onDateSelect={updateAvailableSlots} />
-        <ReservationTable slots={availableSlots} />
+        <CalendarButton
+          onDateSelect={updateAvailableSlots}
+          onDateChange={setSelectedDate}
+        />
+        <ReservationTable slots={availableSlots} date={selectedDate} />
       </div>
     </div>
   );
@@ -91,8 +95,10 @@ function CalendarDaysIcon(props: React.SVGProps<SVGSVGElement>) {
 
 const CalendarButton = ({
   onDateSelect,
+  onDateChange,
 }: {
   onDateSelect: (date: Date) => Promise<void>;
+  onDateChange: (date: Date | null) => void;
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false); // State to control popover visibility
@@ -106,6 +112,7 @@ const CalendarButton = ({
     if (dateRange) {
       const selectedStartDate = dateRange.from ?? null;
       setSelectedDate(selectedStartDate);
+      onDateChange(selectedStartDate);
       setIsPopoverOpen(false); // Close the popover
 
       // Call the server action
@@ -114,6 +121,7 @@ const CalendarButton = ({
       }
     } else {
       setSelectedDate(null);
+      onDateChange(null);
     }
   };
 
@@ -154,9 +162,10 @@ interface ReservationSlot {
 
 interface ReservationTableProps {
   slots: ReservationSlot[];
+  date: Date | null;
 }
 
-const ReservationTable = ({ slots }: ReservationTableProps) => (
+const ReservationTable = ({ slots, date }: ReservationTableProps) => (
   <div className="rounded-lg border shadow-sm">
     <Table>
       <TableHeader>
@@ -175,7 +184,15 @@ const ReservationTable = ({ slots }: ReservationTableProps) => (
             <TableCell>{slot.status}</TableCell>
             <TableCell className="text-right">
               {slot.status === "Available" ? (
-                <Link href="/reserve">
+                <Link
+                  href={
+                    date
+                      ? `/reserve?date=${encodeURIComponent(
+                          date.toISOString(),
+                        )}`
+                      : "#"
+                  }
+                >
                   <Button variant="outline">Reserve</Button>
                 </Link>
               ) : (

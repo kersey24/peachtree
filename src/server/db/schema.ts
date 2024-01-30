@@ -106,7 +106,7 @@ export const verificationTokens = mysqlTable(
 );
 
 export const courts = mysqlTable("court", {
-  id: varchar("id", { length: 255 }).notNull().primaryKey(),
+  id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
   courtNumber: int("courtNumber").notNull(),
   courtType: varchar("courtType", { length: 255 }).notNull(),
   availabilty: boolean("availabilty").notNull(),
@@ -117,7 +117,7 @@ export const courts = mysqlTable("court", {
 export const reservations = mysqlTable(
   "reservation",
   {
-    id: varchar("id", { length: 255 }).notNull().primaryKey(),
+    id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
     courtId: int("courtId").notNull(),
     userId: varchar("userId", { length: 255 }).notNull(),
     startTime: timestamp("startTime", { mode: "date" }).notNull(),
