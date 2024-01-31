@@ -116,9 +116,9 @@ const CalendarButton = ({
     setIsPopoverOpen(!isPopoverOpen);
   };
   // Function to handle date selection and call server action
-  const handleDateSelection = async (dateRange: DateRange | undefined) => {
-    if (dateRange) {
-      const selectedStartDate = dateRange.from ?? null;
+  const handleDateSelection = async (date: Date | undefined) => {
+    if (date) {
+      const selectedStartDate = date;
       setSelectedDate(selectedStartDate);
       onDateChange(selectedStartDate);
       setIsPopoverOpen(false); // Close the popover
@@ -132,6 +132,8 @@ const CalendarButton = ({
       onDateChange(null);
     }
   };
+
+  const date = selectedDate ?? undefined;
 
   return (
     <Popover
@@ -152,7 +154,9 @@ const CalendarButton = ({
       <PopoverContent align="start" className="w-auto p-0">
         <Calendar
           initialFocus
-          mode="range"
+          mode="single"
+          selected={date}
+          defaultMonth={date ?? new Date()}
           numberOfMonths={1}
           disabled={(date) => date.getTime() < new Date().setHours(0, 0, 0, 0)}
           onSelect={handleDateSelection}

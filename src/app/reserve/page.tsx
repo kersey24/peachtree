@@ -102,11 +102,15 @@ export default function ReservationPage() {
         <h1 className="text-2xl font-bold">Reserve a Court</h1>
         <SelectACourt onCourtSelect={handleCourtSelection} />
         <div className="flex flex-col gap-4 md:flex-row md:gap-8">
-          <MainCalendar selectedDate={selectedDate} />
+          <MainCalendar
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+          />
           <AvailableTimeSlots
             onDateChange={handleDateSelection}
             timeslots={timeSlots}
             onTimeSelect={setSelectedTime}
+            selectedDate={selectedDate}
           />
         </div>
         <CourtInfo onNumberPlayersChange={setNumberOfPlayers} />
@@ -132,7 +136,13 @@ export default function ReservationPage() {
   );
 }
 
-function MainCalendar({ selectedDate }: { selectedDate: Date | null }) {
+function MainCalendar({
+  selectedDate,
+  setSelectedDate,
+}: {
+  selectedDate: Date | null;
+  setSelectedDate: (date: Date) => void;
+}) {
   const displayDate = selectedDate
     ? selectedDate.toLocaleDateString("en-US", {
         weekday: "long",
@@ -150,7 +160,9 @@ function MainCalendar({ selectedDate }: { selectedDate: Date | null }) {
       </div>
       <div className="flex items-center justify-between border-b px-6 py-4">
         <h2 className="text-lg font-semibold">{displayDate}</h2>
-        <Button variant="outline">Today</Button>
+        <Button variant="outline" onClick={() => setSelectedDate(new Date())}>
+          Today
+        </Button>
       </div>
       <div className="grid grid-cols-5 gap-4 p-6">
         <div className="col-span-1 space-y-4">
@@ -383,22 +395,29 @@ function AvailableTimeSlots({
   onDateChange,
   timeslots,
   onTimeSelect,
+  selectedDate,
 }: {
   onDateChange: (date: Date) => void;
   timeslots: string[];
   onTimeSelect: (time: string | null) => void;
+  selectedDate: Date | null;
 }) {
   const [activeTime, setActiveTime] = useState<string | null>(null);
   const router = useRouter();
+
+  const selected = selectedDate ?? undefined; // This ensures the type is either Date or undefined
+
   return (
     <div className="flex-1 items-center justify-center gap-2 p-2 md:gap-4">
+      {/* // disable ts error */}
       <Calendar
-        initialFocus
-        mode="range"
-        numberOfMonths={1}
+        selected={selected}
+        mode="single"
+        initialFocus={true}
+        month={selected}
         disabled={(date) => date.getTime() < new Date().setHours(0, 0, 0, 0)}
         onSelect={(selectedDate) => {
-          const formattedDate = selectedDate?.from;
+          const formattedDate = selectedDate;
           if (formattedDate) {
             // Assuming selectedDate is a Date object
             router.replace(
