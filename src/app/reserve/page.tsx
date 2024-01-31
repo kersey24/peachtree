@@ -11,6 +11,7 @@ import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { getCourtAvailableSlots } from "~/actions/openings/getCourtOpenings";
 import { set } from "date-fns";
 import { createReservation } from "~/actions/reservations/create";
+import { on } from "events";
 
 export default function ReservationPage() {
   const pathname = usePathname();
@@ -20,6 +21,7 @@ export default function ReservationPage() {
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [numberOfPlayers, setNumberOfPlayers] = useState<number>();
 
   useEffect(() => {
     // Extract 'date' parameter from searchParams
@@ -107,7 +109,7 @@ export default function ReservationPage() {
             onTimeSelect={setSelectedTime}
           />
         </div>
-        <CourtInfo />
+        <CourtInfo onNumberPlayersChange={setNumberOfPlayers} />
         <Link className="mt-4" href="/reserve/success">
           <Button
             className="w-full"
@@ -123,6 +125,7 @@ export default function ReservationPage() {
           selectedCourt={selectedCourt}
           selectedDate={selectedDate}
           selectedTime={selectedTime}
+          numPlayers={numberOfPlayers}
         />
       </main>
     </div>
@@ -344,7 +347,11 @@ function SelectACourt({ onCourtSelect }: SelectACourtProps) {
   );
 }
 
-function CourtInfo() {
+function CourtInfo({
+  onNumberPlayersChange,
+}: {
+  onNumberPlayersChange: (number: number) => void;
+}) {
   return (
     <>
       <div className="flex flex-row gap-2 space-y-2 py-4 md:flex-col md:gap-3">
@@ -356,6 +363,9 @@ function CourtInfo() {
             placeholder="Number of players"
             required
             type="number"
+            onChange={(event) => {
+              onNumberPlayersChange(event.target.valueAsNumber);
+            }}
           />
         </div>
         <div className="space-y-2">
@@ -463,11 +473,18 @@ function ReservationDetails({
   selectedCourt,
   selectedDate,
   selectedTime,
+  numPlayers,
 }: {
   selectedCourt: number | undefined;
   selectedDate: Date | null;
   selectedTime: string | null;
+  numPlayers: number | undefined;
 }) {
+  //check if numplayer is NaN
+  if (isNaN(numPlayers!)) {
+    numPlayers = 0;
+  }
+
   const formattedDate = selectedDate
     ? selectedDate.toLocaleDateString("en-US", {
         weekday: "long",
@@ -494,7 +511,7 @@ function ReservationDetails({
         </div>
         <div>
           <h3 className="text-md font-semibold">Number of Players</h3>
-          <p>1</p>
+          <p>{numPlayers ?? 0}</p>
         </div>
       </div>
     </div>

@@ -31,9 +31,7 @@ export async function getCourtAvailableSlots(courtId: number, date: Date) {
   const reservedSlots = reservedSlotsResult.map((row) => {
     const startTime = new Date(row.startTime);
     return startTime.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
+      timeStyle: "short",
     });
   });
 
@@ -58,9 +56,7 @@ function generateTimeSlots(date: Date) {
   for (let i = 0; i < 9; i++) {
     // 9 slots from 9:00 AM to 6:00 PM
     const timeString = startDate.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
+      timeStyle: "short",
     });
     slots.push(timeString);
     startDate.setHours(startDate.getHours() + 1); // Increment by one hour

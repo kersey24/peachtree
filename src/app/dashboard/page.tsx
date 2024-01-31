@@ -29,22 +29,30 @@ export default function DashboardPage() {
   const updateAvailableSlots = async (date: Date) => {
     const slots = await getOpenings(date);
 
+    //Pass in these values later from admin settings
+    const openingTime = new Date(date);
+    openingTime.setHours(9, 0, 0, 0);
+    const closingTime = new Date(date);
+    closingTime.setHours(18, 0, 0, 0);
+
     console.log(slots);
 
     // Transform each TimeSlot to ReservationSlot
-    const transformedSlots: ReservationSlot[] = slots.map((slot) => {
-      // Convert UTC to local time if necessary
-      const localStart = new Date(slot.start);
-      const localEnd = new Date(slot.end);
+    const transformedSlots: ReservationSlot[] = slots
+      .filter((slot) => slot.start >= openingTime && slot.end <= closingTime)
+      .map((slot) => {
+        // Convert UTC to local time if necessary
+        const localStart = new Date(slot.start);
+        const localEnd = new Date(slot.end);
 
-      return {
-        date: localStart.toLocaleDateString(),
-        timeSlot: `${localStart.toLocaleTimeString([], {
-          timeStyle: "short",
-        })} - ${localEnd.toLocaleTimeString([], { timeStyle: "short" })}`,
-        status: slot.available ? "Available" : "Reserved",
-      };
-    });
+        return {
+          date: localStart.toLocaleDateString(),
+          timeSlot: `${localStart.toLocaleTimeString([], {
+            timeStyle: "short",
+          })} - ${localEnd.toLocaleTimeString([], { timeStyle: "short" })}`,
+          status: slot.available ? "Available" : "Reserved",
+        };
+      });
 
     setAvailableSlots(transformedSlots);
   };
@@ -171,7 +179,7 @@ const ReservationTable = ({ slots, date }: ReservationTableProps) => (
       <TableHeader>
         <TableRow>
           <TableHead className="w-[120px]">Day</TableHead>
-          <TableHead className="w-[100px]">Time Slot</TableHead>
+          <TableHead className="w-[120px]">Time Slot</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Reserve</TableHead>
         </TableRow>
@@ -180,7 +188,7 @@ const ReservationTable = ({ slots, date }: ReservationTableProps) => (
         {slots.map((slot) => (
           <TableRow key={slot.date + slot.timeSlot}>
             <TableCell className="font-medium">{slot.date}</TableCell>
-            <TableCell className="font-medium">{slot.timeSlot}</TableCell>
+            <TableCell className=" font-medium">{slot.timeSlot}</TableCell>
             <TableCell>{slot.status}</TableCell>
             <TableCell className="text-right">
               {slot.status === "Available" ? (
