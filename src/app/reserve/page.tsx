@@ -9,12 +9,12 @@ import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { getCourtAvailableSlots } from "~/actions/openings/getCourtOpenings";
-import { set } from "date-fns";
 import { createReservation } from "~/actions/reservations/create";
-import { on } from "events";
+import { getDailyReservations } from "~/actions/reservations/getReservationsFromDate";
 
 export default function ReservationPage() {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedCourt, setSelectedCourt] = useState<number>();
@@ -22,6 +22,7 @@ export default function ReservationPage() {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [numberOfPlayers, setNumberOfPlayers] = useState<number>();
+  const [reservationsByCourt, setReservationsByCourt] = useState({});
 
   useEffect(() => {
     // Extract 'date' parameter from searchParams
@@ -32,13 +33,15 @@ export default function ReservationPage() {
         if (!isNaN(parsedDate.getTime())) {
           // Check if the date is valid
           setSelectedDate(parsedDate);
+        } else {
+          router.replace("/reserve");
         }
       } catch (error) {
         console.error("Error parsing date:", error);
         // Handle error (e.g., invalid date format)
       }
     }
-  }, [pathname, searchParams]);
+  }, [router, searchParams]);
 
   useEffect(() => {
     if (selectedCourt && selectedDate) {
@@ -52,6 +55,22 @@ export default function ReservationPage() {
         });
     }
   }, [selectedCourt, selectedDate]);
+
+  useEffect(() => {
+    if (!selectedDate) return;
+
+    const fetchDailyReservations = async () => {
+      try {
+        const reservationsResult = await getDailyReservations(selectedDate);
+        console.log("Daily reservations by court:", reservationsResult);
+        setReservationsByCourt(reservationsResult);
+      } catch (error) {
+        console.error("Error fetching daily reservations:", error);
+      }
+    };
+
+    void fetchDailyReservations();
+  }, [selectedDate]);
 
   const handleCourtSelection = (court: number) => {
     setSelectedCourt(court);
@@ -100,17 +119,19 @@ export default function ReservationPage() {
       </header>
       <main className="flex-1 items-center justify-center p-4">
         <h1 className="text-2xl font-bold">Reserve a Court</h1>
-        <SelectACourt onCourtSelect={handleCourtSelection} />
-        <div className="flex flex-col gap-4 md:flex-row md:gap-8">
+        {/* <SelectACourt onCourtSelect={handleCourtSelection} /> */}
+        <div className="max-h-xl flex flex-col gap-4 md:flex-row md:gap-8">
           <MainCalendar
             selectedDate={selectedDate}
             setSelectedDate={setSelectedDate}
+            dailyReservations={reservationsByCourt}
           />
           <AvailableTimeSlots
             onDateChange={handleDateSelection}
             timeslots={timeSlots}
             onTimeSelect={setSelectedTime}
             selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
           />
         </div>
         <CourtInfo onNumberPlayersChange={setNumberOfPlayers} />
@@ -136,13 +157,23 @@ export default function ReservationPage() {
   );
 }
 
+interface CourtReservation {
+  start: string;
+  end: string;
+}
+
+type ReservationsByCourt = Record<number, CourtReservation[]>;
+
 function MainCalendar({
   selectedDate,
   setSelectedDate,
+  dailyReservations,
 }: {
   selectedDate: Date | null;
   setSelectedDate: (date: Date) => void;
+  dailyReservations: ReservationsByCourt;
 }) {
+  const router = useRouter();
   const displayDate = selectedDate
     ? selectedDate.toLocaleDateString("en-US", {
         weekday: "long",
@@ -152,81 +183,103 @@ function MainCalendar({
       })
     : "Select a date";
 
-  return (
-    <div className="mx-auto w-full max-w-5xl overflow-hidden rounded-lg bg-white shadow-md">
-      <div className="flex items-center justify-between border-b px-6 py-4">
-        <h1 className="p-4 text-lg font-semibold">Court Availability</h1>
-        <CalendarDaysIcon className="h-6 w-6" />
+  // Simplified - replace with dynamic court handling and full day coverage
+  const timeSlots = [
+    "08:00 AM",
+    "09:00 AM",
+    "10:00 AM",
+    "11:00 AM",
+    "12:00 PM",
+    "1:00 PM",
+    "2:00 PM",
+    "3:00 PM",
+    "4:00 PM",
+    "5:00 PM",
+  ];
+
+  const renderTimeSlots = () => {
+    return timeSlots.map((time, index) => (
+      <div key={index} className="text-sm text-gray-500">
+        {time}
       </div>
-      <div className="flex items-center justify-between border-b px-6 py-4">
-        <h2 className="text-lg font-semibold">{displayDate}</h2>
-        <Button variant="outline" onClick={() => setSelectedDate(new Date())}>
-          Today
-        </Button>
+    ));
+  };
+
+  const renderCourtReservations = () => {
+    return [1, 2, 3, 4].map((courtId) => {
+      const reservations = dailyReservations[courtId] ?? [];
+      console.log("Reservations for court", courtId, ":", reservations);
+
+      return (
+        <div key={courtId} className="col-span-1 space-y-2">
+          <div>Court {courtId}</div>
+          {timeSlots.map((timeSlot, index) => {
+            const reservation = reservations.find(
+              (res) => res.start === timeSlot,
+            );
+
+            const isReserved = reservation != null;
+
+            return (
+              <div
+                key={index}
+                className={`col-span-1 h-10 rounded p-2 ${
+                  isReserved ? "bg-blue-200" : "cursor-pointer bg-gray-100"
+                }`}
+                style={{
+                  position: "relative",
+                }}
+                onClick={() => {
+                  if (!isReserved) {
+                    // Handle click event for available time slot
+                    openReservationModal(courtId, timeSlot);
+                  }
+                }}
+              >
+                {isReserved ? (
+                  `${reservation?.start} - ${reservation?.end}`
+                ) : (
+                  <span className="text-green-600 hover:text-green-800"></span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      );
+    });
+  };
+
+  const openReservationModal = (courtId: number, timeSlot: string) => {
+    // Placeholder - implement modal opening logic here
+    alert(`Open modal for court ${courtId} at ${timeSlot}`);
+  };
+
+  return (
+    <div className=" mx-auto max-h-full w-full max-w-5xl overflow-hidden rounded-lg bg-white shadow-md">
+      <div className="flex max-h-40 flex-col">
+        <div className="flex flex-1 items-center justify-between border-b px-6 py-4">
+          <h1 className="p-4 text-lg font-semibold">Court Availability</h1>
+          <CalendarDaysIcon className="h-6 w-6" />
+        </div>
+        <div className="flex items-center justify-between border-b px-6 py-4">
+          <h2 className="text-lg font-semibold">{displayDate}</h2>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSelectedDate(new Date());
+              router.replace(
+                `/reserve?date=${encodeURIComponent(new Date().toISOString())}`,
+                { scroll: false },
+              );
+            }}
+          >
+            Today
+          </Button>
+        </div>
       </div>
       <div className="grid grid-cols-5 gap-4 p-6">
-        <div className="col-span-1 space-y-4">
-          <div className="text-sm text-gray-500">08:00 AM</div>
-          <div className="text-sm text-gray-500">09:00 AM</div>
-          <div className="text-sm text-gray-500">10:00 AM</div>
-          <div className="text-sm text-gray-500">11:00 AM</div>
-          <div className="text-sm text-gray-500">12:00 PM</div>
-          <div className="text-sm text-gray-500">01:00 PM</div>
-          <div className="text-sm text-gray-500">02:00 PM</div>
-          <div className="text-sm text-gray-500">03:00 PM</div>
-          <div className="text-sm text-gray-500">04:00 PM</div>
-          <div className="text-sm text-gray-500">05:00 PM</div>
-        </div>
-        <div className="col-span-4 grid grid-cols-4 gap-4">
-          <div className="col-span-1 space-y-2">
-            <div className="h-8 rounded bg-green-200" />
-            <div className="h-8 rounded bg-red-200" />
-            <div className="h-8 rounded bg-blue-200" />
-            <div className="h-8 rounded bg-yellow-200" />
-            <div className="h-8 rounded bg-purple-200" />
-            <div className="h-8 rounded bg-green-200" />
-            <div className="h-8 rounded bg-red-200" />
-            <div className="h-8 rounded bg-blue-200" />
-            <div className="h-8 rounded bg-yellow-200" />
-            <div className="h-8 rounded bg-purple-200" />
-          </div>
-          <div className="col-span-1 space-y-2">
-            <div className="h-8 rounded bg-purple-200" />
-            <div className="h-8 rounded bg-green-200" />
-            <div className="h-8 rounded bg-red-200" />
-            <div className="h-8 rounded bg-blue-200" />
-            <div className="h-8 rounded bg-yellow-200" />
-            <div className="h-8 rounded bg-purple-200" />
-            <div className="h-8 rounded bg-green-200" />
-            <div className="h-8 rounded bg-red-200" />
-            <div className="h-8 rounded bg-blue-200" />
-            <div className="h-8 rounded bg-yellow-200" />
-          </div>
-          <div className="col-span-1 space-y-2">
-            <div className="h-8 rounded bg-blue-200" />
-            <div className="h-8 rounded bg-yellow-200" />
-            <div className="h-8 rounded bg-purple-200" />
-            <div className="h-8 rounded bg-green-200" />
-            <div className="h-8 rounded bg-red-200" />
-            <div className="h-8 rounded bg-blue-200" />
-            <div className="h-8 rounded bg-yellow-200" />
-            <div className="h-8 rounded bg-purple-200" />
-            <div className="h-8 rounded bg-green-200" />
-            <div className="h-8 rounded bg-red-200" />
-          </div>
-          <div className="col-span-1 space-y-2">
-            <div className="h-8 rounded bg-red-200" />
-            <div className="h-8 rounded bg-blue-200" />
-            <div className="h-8 rounded bg-yellow-200" />
-            <div className="h-8 rounded bg-purple-200" />
-            <div className="h-8 rounded bg-green-200" />
-            <div className="h-8 rounded bg-red-200" />
-            <div className="h-8 rounded bg-blue-200" />
-            <div className="h-8 rounded bg-yellow-200" />
-            <div className="h-8 rounded bg-purple-200" />
-            <div className="h-8 rounded bg-green-200" />
-          </div>
-        </div>
+        <div className="col-span-1 space-y-7 pt-6">{renderTimeSlots()}</div>
+        {renderCourtReservations()}
       </div>
     </div>
   );
@@ -375,8 +428,12 @@ function CourtInfo({
             placeholder="Number of players"
             required
             type="number"
+            max={4}
             onChange={(event) => {
-              onNumberPlayersChange(event.target.valueAsNumber);
+              const number = event.target.valueAsNumber;
+              if (number <= 4) {
+                onNumberPlayersChange(number);
+              }
             }}
           />
         </div>
@@ -396,25 +453,46 @@ function AvailableTimeSlots({
   timeslots,
   onTimeSelect,
   selectedDate,
+  setSelectedDate,
 }: {
   onDateChange: (date: Date) => void;
   timeslots: string[];
   onTimeSelect: (time: string | null) => void;
   selectedDate: Date | null;
+  setSelectedDate: (date: Date) => void;
 }) {
-  const [activeTime, setActiveTime] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeTime, setActiveTime] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true); // New state to control loading
 
-  const selected = selectedDate ?? undefined; // This ensures the type is either Date or undefined
+  useEffect(() => {
+    setIsLoading(true);
+    const dateString = searchParams.get("date");
+    if (dateString) {
+      const parsedDate = new Date(decodeURIComponent(dateString));
+      if (!isNaN(parsedDate.getTime())) {
+        setSelectedDate(parsedDate);
+      } else {
+        // Handle invalid date format
+      }
+    }
+    setIsLoading(false); // Set loading to false after setting the date
+  }, [searchParams]);
+
+  if (isLoading) {
+    return <Calendar />; // Or any other loading indicator
+  }
 
   return (
     <div className="flex-1 items-center justify-center gap-2 p-2 md:gap-4">
       {/* // disable ts error */}
+
       <Calendar
-        selected={selected}
+        selected={selectedDate!}
         mode="single"
         initialFocus={true}
-        month={selected}
+        defaultMonth={selectedDate!}
         disabled={(date) => date.getTime() < new Date().setHours(0, 0, 0, 0)}
         onSelect={(selectedDate) => {
           const formattedDate = selectedDate;
