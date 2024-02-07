@@ -11,6 +11,11 @@ import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { getCourtAvailableSlots } from "~/actions/openings/getCourtOpenings";
 import { createReservation } from "~/actions/reservations/create";
 import { getDailyReservations } from "~/actions/reservations/getReservationsFromDate";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/ui/popover";
 
 export default function ReservationPage() {
   const pathname = usePathname();
@@ -212,7 +217,7 @@ function MainCalendar({
 
       return (
         <div key={courtId} className="col-span-1 space-y-2">
-          <div>Court {courtId}</div>
+          <div className="justify-center text-center">Court {courtId}</div>
           {timeSlots.map((timeSlot, index) => {
             const reservation = reservations.find(
               (res) => res.start === timeSlot,
@@ -220,28 +225,69 @@ function MainCalendar({
 
             const isReserved = reservation != null;
 
-            return (
+            return isReserved ? (
               <div
                 key={index}
-                className={`col-span-1 h-10 rounded p-2 ${
-                  isReserved ? "bg-blue-200" : "cursor-pointer bg-gray-100"
-                }`}
-                style={{
-                  position: "relative",
-                }}
-                onClick={() => {
-                  if (!isReserved) {
-                    // Handle click event for available time slot
-                    openReservationModal(courtId, timeSlot);
-                  }
-                }}
+                className="col-span-1 h-10 rounded bg-blue-200 p-2"
+                style={{ position: "relative" }}
               >
-                {isReserved ? (
-                  `${reservation?.start} - ${reservation?.end}`
-                ) : (
-                  <span className="text-green-600 hover:text-green-800"></span>
-                )}
+                {`${reservation.start} - ${reservation.end}`}
               </div>
+            ) : (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <div className="col-span-1 h-10 rounded bg-white p-2"></div>
+                </PopoverTrigger>
+                <PopoverContent className="w-96 rounded-lg bg-slate-50 shadow-lg">
+                  <div className="space-y-4">
+                    <div className="border-b pb-2">
+                      {/* Change to court state and date */}
+                      <h4 className="text-lg font-medium">Reserve Court 1</h4>
+                      <p className="text-sm text-gray-500">
+                        {new Date().toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-4">
+                        <Label htmlFor="startTime">Start Time</Label>
+                        <Input
+                          id="startTime"
+                          type="time"
+                          // Set based on logic to calculate start time
+                          defaultValue={new Date().toLocaleTimeString()}
+                          className="h-8 flex-1 border-gray-300"
+                        />
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <Label htmlFor="endTime">End Time</Label>
+                        <Input
+                          id="endTime"
+                          type="time"
+                          defaultValue="" // Set based on logic to calculate end time
+                          className="h-8 flex-1 border-gray-300"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          /* Close popover logic here */
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          /* Confirm reservation logic here */
+                        }}
+                      >
+                        Confirm
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             );
           })}
         </div>
