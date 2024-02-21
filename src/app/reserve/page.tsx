@@ -16,7 +16,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "~/components/ui/popover";
-import { differenceInMinutes, isWithinInterval, parse } from "date-fns";
+import {
+  addMinutes,
+  differenceInMinutes,
+  format,
+  isWithinInterval,
+  parse,
+} from "date-fns";
 import { time } from "console";
 
 export default function ReservationPage() {
@@ -171,6 +177,22 @@ interface CourtReservation {
 
 type ReservationsByCourt = Record<number, CourtReservation[]>;
 
+// Helper to generate all 30-minute time slots
+const generateTimeSlots = () => {
+  const slots = [];
+  let startTime = new Date();
+  startTime.setHours(8, 0, 0); // Start at 8:00 AM
+  const endTime = new Date();
+  endTime.setHours(18, 0, 0); // End at 5:00 PM
+
+  while (startTime < endTime) {
+    slots.push(format(startTime, "h:mm a"));
+    startTime = addMinutes(startTime, 15); // Increment by 15 minutes
+  }
+
+  return slots;
+};
+
 function MainCalendar({
   selectedDate,
   setSelectedDate,
@@ -192,8 +214,8 @@ function MainCalendar({
 
   // Simplified - replace with dynamic court handling and full day coverage
   const timeSlots = [
-    "08:00 AM",
-    "09:00 AM",
+    "8:00 AM",
+    "9:00 AM",
     "10:00 AM",
     "11:00 AM",
     "12:00 PM",
@@ -234,11 +256,14 @@ function MainCalendar({
             width: "100%",
             height: "1px", // Thin line
             backgroundColor: "#e0e0e0", // Light grey line
+            zIndex: 2, // Behind the time label
           }}
         ></div>
       </div>
     ));
   };
+
+  const reserveTimeSlots = generateTimeSlots(); // Use the generated time slots instead
 
   const renderCourtReservations = () => {
     const referenceDate = selectedDate ?? new Date();
@@ -246,31 +271,121 @@ function MainCalendar({
       const reservations = dailyReservations[courtId] ?? [];
       console.log("Reservations for court", courtId, ":", reservations);
 
+      let isInReservation = false; // Flag to track if we're in a reservation block
+
       return (
         <div key={courtId} className="relative col-span-1 border-r-2">
           <div className="justify-center text-center">Court {courtId}</div>
-          {reservations.map((reservation, index) => {
+          {reserveTimeSlots.map((timeSlot, index) => {
             // Convert start time and duration to position and height for display
-            const startTime = convertTimeToPosition(reservation.start);
+            const slotStart = parse(timeSlot, "h:mm a", referenceDate);
+            const slotEnd = addMinutes(slotStart, 30); // Assuming 30 minute slots
 
-            const duration = calculateDuration(
-              reservation.start,
-              reservation.end,
-            );
+            const isReserved = reservations.some((reservation) => {
+              const resStart = parse(
+                reservation.start,
+                "h:mm a",
+                referenceDate,
+              );
+              const resEnd = parse(reservation.end, "h:mm a", referenceDate);
+              return isWithinInterval(slotStart, {
+                start: resStart,
+                end: resEnd,
+              });
+            });
 
-            return (
-              <div
-                key={index}
-                className="col-span-1 w-full rounded bg-blue-200 p-2"
-                style={{
-                  position: "absolute",
-                  top: `${startTime - 1}px`, // Calculate top position based on start time
-                  height: `${duration - 4}px`, // Calculate height based on duration
-                }}
-              >
-                {`${reservation.start} - ${reservation.end}`}
-              </div>
-            );
+            const reservation = reservations.find((reservation) => {
+              const resStart = parse(
+                reservation.start,
+                "h:mm a",
+                referenceDate,
+              );
+              const resEnd = parse(reservation.end, "h:mm a", referenceDate);
+              return isWithinInterval(slotStart, {
+                start: resStart,
+                end: resEnd,
+              });
+            });
+
+            if (!isReserved && reservation === undefined) {
+              // This slot is available, render a popover trigger
+              return (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <div className="col-span-1 h-10 rounded bg-white p-2"></div>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-96 rounded-lg bg-slate-50 shadow-lg">
+                    <div className="space-y-4">
+                      <div className="border-b pb-2">
+                        {/* Change to court state and date */}
+                        <h4 className="text-lg font-medium">Reserve Court 1</h4>
+                        <p className="text-sm text-gray-500">
+                          {new Date().toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-4">
+                          <Label htmlFor="startTime">Start Time</Label>
+                          <Input
+                            id="startTime"
+                            type="time"
+                            // Set based on logic to calculate start time
+                            defaultValue={new Date().toLocaleTimeString()}
+                            className="h-8 flex-1 border-gray-300"
+                          />
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <Label htmlFor="endTime">End Time</Label>
+                          <Input
+                            id="endTime"
+                            type="time"
+                            defaultValue="" // Set based on logic to calculate end time
+                            className="h-8 flex-1 border-gray-300"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          onClick={() => {
+                            /* Close popover logic here */
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            /* Confirm reservation logic here */
+                          }}
+                        >
+                          Confirm
+                        </Button>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              );
+            } else if (isInReservation) {
+              return null;
+            } else {
+              isInReservation = true;
+              return (
+                <div
+                  key={index}
+                  className="col-span-1 w-full rounded bg-blue-200 p-2"
+                  style={{
+                    position: "absolute",
+                    top: `${convertTimeToPosition(timeSlot) - 1}px`, // Calculate top position based on start time
+                    height: `${calculateDuration(
+                      reservation!.start,
+                      reservation!.end,
+                    )}px`, // Calculate height based on duration
+                  }}
+                >
+                  {`${reservation!.start} - ${reservation!.end}`}
+                </div>
+              );
+            }
           })}
         </div>
       );
@@ -283,25 +398,13 @@ function MainCalendar({
     // Open modal or popover for booking
   };
 
-  const doesOverlap = (
-    timeSlot: string,
-    reservations: CourtReservation[],
-    referenceDate: Date,
-  ) => {
-    const slotStart = parse(timeSlot, "h:mm a", referenceDate);
-    // Assuming each time slot is 1 hour for simplicity
-    const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
-
-    return reservations.some((reservation) => {
-      const resStart = parse(reservation.start, "h:mm a", referenceDate);
-      const resEnd = parse(reservation.end, "h:mm a", referenceDate);
-      return (
-        isWithinInterval(slotStart, { start: resStart, end: resEnd }) ||
-        isWithinInterval(slotEnd, { start: resStart, end: resEnd }) ||
-        isWithinInterval(resStart, { start: slotStart, end: slotEnd })
-      );
-    });
-  };
+  // const isOverlap = (slotStart, slotEnd, reservationStart, reservationEnd) => {
+  //   return (
+  //     isWithinInterval(reservationStart, { start: slotStart, end: slotEnd }) ||
+  //     isWithinInterval(reservationEnd, { start: slotStart, end: slotEnd }) ||
+  //     (reservationStart <= slotStart && reservationEnd >= slotEnd)
+  //   );
+  // };
 
   // Helper to parse time string to Date object
   const parseTimeString = (timeString: string) => {
@@ -328,10 +431,10 @@ function MainCalendar({
   };
 
   const calculateDuration = (startTime: string, endTime: string) => {
+    // Calculate the difference in minutes between start and end times
     const start = parseTimeString(startTime);
     const end = parseTimeString(endTime);
-    // Calculate the difference in minutes between start and end times
-    return differenceInMinutes(end, start);
+    return differenceInMinutes(end, start) - 4;
   };
 
   // const renderCourtReservations = () => {
@@ -340,7 +443,7 @@ function MainCalendar({
   //     console.log("Reservations for court", courtId, ":", reservations);
 
   //     return (
-  //       <div key={courtId} className="col-span-1 space-y-2 border-2">
+  //       <div key={courtId} className="relative col-span-1 space-y-2 border">
   //         <div className="justify-center text-center">Court {courtId}</div>
   //         {timeSlots.map((timeSlot, index) => {
   //           const reservation = reservations.find(
@@ -352,8 +455,12 @@ function MainCalendar({
   //           return isReserved ? (
   //             <div
   //               key={index}
-  //               className="col-span-1 h-10 rounded bg-blue-200 p-2"
-  //               style={{ position: "relative" }}
+  //               className="col-span-1 h-10 w-full rounded bg-blue-200 p-2"
+  //               style={{
+  //                 position: "absolute",
+  //                 top: `${convertTimeToPosition(timeSlot)}px`,
+  //                 height: `${calculateDuration(timeSlot, reservation.end)}px`,
+  //               }}
   //             >
   //               {`${reservation.start} - ${reservation.end}`}
   //             </div>
